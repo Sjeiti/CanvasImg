@@ -1,0 +1,301 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+
+		<title>Canvas Image</title>
+
+		<meta name="author" content="Ron Valstar" />
+		<meta name="keywords" content="" />
+		<meta name="description" content="" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<link rel="shortcut icon" href="style/favicon.ico">
+
+		<link rel="stylesheet" type="text/css" media="all" href="style/screen.css" />
+
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.js"></script><script>window.jQuery||document.write("<script src='libs/jquery-2.0.0.min.js'>\x3C/script>")</script>
+		<script src="libs/jquery.opensource.min.js"></script>
+		<!--<script src="../../opensource/web/scripts/jquery.opensource.js"></script>-->
+
+		<script src="src/Tween.min.js"></script>
+		<script src="src/PerlinSimplex.min.js"></script>
+		<script src="src/CanvasImg.js"></script>
+		<script>
+			OPENSOURCE.init(CIMG,function(){
+				//
+				CIMG.set(document.getElementById("cnvImg"),"data/0.jpg");
+				//
+				var sBgBse = "data/"
+					,aList = ['transitionList','easingList']
+					,aBgImg = ['0.jpg','1.jpg','2.jpg','3.jpg','4.jpg']
+					,oNextImg = {}
+					,oTrns = CIMG.transition.clock
+					,oEase = TWEEN.Easing.Linear.EaseNone;
+				//
+				// transition and easing lists
+				/*for (var s in TWEEN.easing) {
+					console.log(s); // log
+				}*/
+				var $EasingList = $('#easingList');
+				var $LiEasing = $EasingList.find('.Easing');
+				var $Ul = $('<ul></ul>').appendTo($LiEasing);
+				$.each(TWEEN.Easing,function(name,ease){
+					var $Li2 = $('<li>'+name+'</li>').appendTo($Ul);
+					var $Ul2 = $('<ul></ul>').appendTo($Li2);
+					$.each(ease,function(type,o){
+						$('<li>'+type+'</li>').appendTo($Ul2);
+					});
+				});
+				//
+				var $EasingList = $('#transitionList');
+				var $LiEasing = $EasingList.find('.transition');
+				var $Ul = $('<ul></ul>').appendTo($LiEasing);
+				$.each(CANVASIMG.transition,function(name,ease){
+					var $Li2 = $('<li>'+name+'</li>').appendTo($Ul);
+				});
+				//
+				for (var i=0,l=aList.length;i<l;i++) {
+					var sList = aList[i]
+						,mList = document.getElementById(sList)
+						,aUl = mList.getElementsByTagName("ul")
+						,aLi = mList.getElementsByTagName("li");
+					for (var j=0;j<aLi.length;j++) {
+						aLi[j].addEventListener('click',clickLi,false);
+					}
+					if (i===1) aUl[2].style.display = "inline-block";
+				}
+				//
+				// target type examples
+				var aSubjects = document.getElementsByClassName('exmsubject');
+				for (var i=0;i<aSubjects.length;i++) {
+					aSubjects[i].addEventListener('click',function(e){
+						nextImg(e.currentTarget,null,oTrns,oEase,{
+							 scale:		3
+							,toDataURL:	true
+							,exists:	"replace"
+							,vertical:	Math.random()<.5
+							,fade:		Math.random()*(oTrns===CIMG.transition.simplexNoise||oTrns===CIMG.transition.drip?1:300)
+							,rotation:	Math.random()*2*Math.PI
+							,direction: ["t","r","b","l"][Math.floor(Math.random()*4)]
+							,number:	oTrns===CIMG.transition.particles?(Math.random()<.5?1:128):16
+							,character:	String.fromCharCode(Math.floor(64+25*Math.random()))
+							,font:		"PictogramzRegular"
+						});
+					},false);
+				}
+				//
+				// nextImg
+				var lastElm = document.getElementsByClassName('exmsubject')[0];
+				var nextImg = function(el,t,transition,tweenType,properties,size) {
+					if (!el) el = lastElm;
+					else lastElm = el;
+					if (size===undefined) size = 's';
+					var sId = el.getAttribute("id");
+					if (oNextImg[sId]===undefined) oNextImg[sId] = 1;
+					else oNextImg[sId] = (oNextImg[sId]+1)%aBgImg.length;
+					return CIMG.tween(
+						 el
+						,sBgBse+size+"/"+aBgImg[oNextImg[sId]]
+						,t||1000
+						,transition||CIMG.transition.fade
+						,tweenType
+						,properties
+					);
+				};
+				//
+				// clickLi
+				function clickLi(e) {
+					var mLi = e.currentTarget;
+					var aUl = mLi.getElementsByTagName("ul");
+					if (aUl.length) {
+						aUl[0].style.display = "inline-block";
+						for (var i=0;i<mLi.parentNode.children.length;i++) {
+							var mOLi = mLi.parentNode.children[i];
+							if (mOLi!==mLi) {
+								var aOUl = mOLi.getElementsByTagName("ul");
+								aOUl[0].style.display = "none";
+							}
+						}
+					} else { // is last li
+						var sFn = mLi.parentNode.parentNode.firstChild.textContent.replace(/\s/g,"");
+						var sTp = mLi.firstChild.textContent.replace(/\s/g,"");
+						//
+						// find base ul parent
+						var sUl;
+						var oPr = mLi.parentNode;
+						while (sUl===undefined) {
+							if (oPr.id) sUl = oPr.id;
+							else oPr = oPr.parentNode;
+						}
+						var bTrns = sUl==="transitionList";
+						if (bTrns)	oTrns = CIMG[sFn][sTp];
+						else		oEase = TWEEN.Easing[sFn][sTp];
+
+						// reset siblings
+						for (var i=0;i<mLi.parentNode.children.length;i++) {
+							var mOLi = mLi.parentNode.children[i];
+							if (mOLi===mLi) mOLi.className = 'selected';
+							else mOLi.removeAttribute('class');
+						}
+						lastElm.click();
+					}
+					e.cancelBubble = true;
+				}
+			});
+
+		</script>
+	</head>
+	<body>
+		<header class="main">
+			<div><h1><span></span></h1><nav></nav></div>
+		</header>
+		<section id="intro">
+			<div>
+				<div>
+					<p>Canvas Image is a javascript object for image transitions using a canvas.</p>
+
+					<p>Canvas Image uses <a href="http://github.com/sole/tween.js/tree/" rel="external">Sole's tween.js</a> for transitions.</p>
+
+					<!--<p>For those interested: there is a <a href="test">unit/regression test here</a>.</p>-->
+
+					<!--<p><small>If you find a bug, have a feature request or a code improvement you can <a href="https://github.com/Sjeiti/TinySort/issues">file them here</a>. Please <a href="http://jsfiddle.net/">provide code examples</a> where applicable.</small></p>-->
+				</div>
+				<aside>
+					<h3>download</h3>
+					<a class="button download choosehref" href="src/jquery.tinysort.min.js">
+						<label for="tts1"><input type="radio" id="tts1" name="tts" value="src/CanvasImg.js" /><span class="filesize"></span> source</label><br/>
+						<label for="tts2"><input type="radio" id="tts2" name="tts" value="src/CanvasImg.min.js" checked /><span class="filesize"></span> minified</label><br/>
+						<label for="tts3"><input type="radio" id="tts3" name="tts" value="src/CanvasImg.min.jgz" /><span class="filesize"></span> gzipped</label><br/>
+						<span class="iconic download"></span>CanvasImg
+					</a>
+					<a href="https://github.com/Sjeiti/CanvasImg/zipball/master" class="button download small"><span class="iconic download"></span> <span class="filesize"></span> full zip<br/><small>including examples</small></a>
+
+					<a href="git://github.com/Sjeiti/CanvasImg.git" class="repo" data-type="git" rel="external" target="_blank"></a>
+				</aside>
+				<br class="clear" />
+			</div>
+		</section>
+		<div id="page">
+			<section>
+				<h2>Target types</h2>
+				<p>The image transitions can not only be applied onto a canvas but also onto an img or any element that has it's background-image set.</p>
+				<ul class="targetTypes">
+					<li>
+						<h3>canvas</h3>
+						<canvas class="exmsubject" id="cnvImg" width="160" height="120"></canvas>
+					</li>
+					<li>
+						<h3>img</h3>
+						<img class="exmsubject" src="data/0.jpg" />
+					</li>
+					<li>
+						<h3>div</h3>
+						<div class="exmsubject" id="cssImg" style="background-image:url(data/0.jpg);"></div>
+					</li>
+				</ul>
+				<ul id="transitionList" class="objectList halfcolumn">
+					<li>CANVASIMG<ul><li class="transition">transition</li></ul></li>
+				</ul>
+				<ul id="easingList" class="objectList halfcolumn">
+					<li class="TWEEN">TWEEN<ul><li class="Easing">Easing</li></ul></li>
+				</ul>
+			</section>
+			<section>
+				<h2>Usage</h2>
+				<p>The main function you want to use is the following:</p>
+
+				<code>CIMG.tween(target,image,[time],[transitionType],[easingMethod],[properties]);</code>
+
+							<!-- scale:		3
+							,toDataURL:	true
+							,exists:	"replace"
+							,vertical:	Math.random()<.5
+							,fade:		Math.random()*(oTrns===CIMG.transition.simplexNoise||oTrns===CIMG.transition.drip?1:300)
+							,rotation:	Math.random()*2*Math.PI
+							,direction: ["t","r","b","l"][Math.floor(Math.random()*4)]
+							,number:	oTrns===CIMG.transition.particles?(Math.random()<.5?1:128):16
+							,character:	String.fromCharCode(Math.floor(64+25*Math.random()))
+							,font:		"PictogramzRegular"-->
+				<table class="props" id="properties">
+					<thead><tr><th>property</th><th>type</th><th>description</th><th>possible values</th><th>default</th></tr></thead>
+					<tbody>
+						<tr>
+							<td>toDataURL</td>
+							<td>Boolean</td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>
+							<td>exists</td>
+							<td>Boolean</td>
+							<td></td>
+							<td>ignore, append, replace</td>
+							<td></td>
+						</tr>
+						<tr>
+							<td>vertical</td>
+							<td>float</td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>
+							<td>fade</td>
+							<td>float</td>
+							<td></td>
+							<td>t, l, b, r</td>
+							<td></td>
+						</tr>
+						<tr>
+							<td>rotation</td>
+							<td>float</td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>
+							<td>direction</td>
+							<td>String</td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>
+							<td>number</td>
+							<td>integer</td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>
+							<td>character</td>
+							<td>String</td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>
+							<td>font</td>
+							<td>String</td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>
+							<td>callback</td>
+							<td>function</td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+					</tbody>
+				</table>
+			</section>
+		</div>
+		<footer>
+			<div>© 2008-2013 <a href="http://www.sjeiti.com/">Ron Valstar</a></div>
+		</footer>
+	</body>
+</html>
